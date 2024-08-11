@@ -15,7 +15,7 @@ uint8_t _i2c_init(int i2c, int dev_addr)
 	if (file_i2c == 0)
 	{
 		char filename[32];
-  		sprintf(filename, "/dev/i2c-%d", i2c); // I2C bus number passed
+		sprintf(filename, "/dev/i2c-%d", i2c); // I2C bus number passed
 		file_i2c = open(filename, O_RDWR);
 		if (file_i2c < 0)
 		{
@@ -30,7 +30,7 @@ uint8_t _i2c_init(int i2c, int dev_addr)
 		}
 		return 0;
 	}
-	
+
 	// assume done init already
 	return 0;
 }
@@ -43,7 +43,7 @@ uint8_t _i2c_close()
 		file_i2c = 0;
 		return 0;
 	}
-	
+
 	return 1;
 }
 
@@ -51,9 +51,9 @@ uint8_t _i2c_write(uint8_t* ptr, int16_t len)
 {
 	if (file_i2c == 0 || ptr == 0 || len <= 0)
 		return 1;
-				
+
 	write(file_i2c, ptr, len);
-	
+
 	return 0;
 }
 
@@ -61,7 +61,7 @@ uint8_t _i2c_read(uint8_t *ptr, int16_t len)
 {
 	if (file_i2c == 0 || ptr == 0 || len <= 0)
 		return 1;
-				
+
 	read(file_i2c, ptr, len);
 
 	return 0;
