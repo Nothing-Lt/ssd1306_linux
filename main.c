@@ -9,16 +9,7 @@
 
 #include "ssd1306.h"
 
-const uint8_t mining_icon[] = {
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x30, 0x60, 0x60, 0x80, 0xc0, 0xc0, 0x40, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x80, 0x80, 0xc0, 0xe0, 0x70, 0x38, 0x1c, 0x0d, 0x03, 0x87, 0x83, 0x0d, 0x1c, 0x30,
-	0x00, 0x00, 0x04, 0x04, 0x40, 0x01, 0x01, 0x41, 0xf0, 0xf8, 0xfe, 0xfe, 0xbf, 0xdf, 0xdf, 0x00,
-	0x00, 0x07, 0x07, 0x07, 0x03, 0x00, 0x00, 0x00, 0x0c, 0x0c, 0x00, 0x01, 0x81, 0x40, 0xc0, 0xc0,
-	0xc0, 0x80, 0x80, 0x60, 0x70, 0xfc, 0xff, 0xff, 0xfe, 0xfe, 0xff, 0xff, 0xef, 0xff, 0xdf, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x0e, 0x0f, 0x0f, 0x0e, 0x0f, 0x0f,
-	0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0e, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x0f, 0x00
-};
+uint8_t bitmap_buf[1024];
 
 void print_help()
 {
@@ -35,6 +26,30 @@ void print_help()
 	printf("-r\t\t0/normal 180/rotate\n");
 	printf("-x\t\tx position\n");
 	printf("-y\t\ty position\n");
+	printf("-b\t\tbitmap filename\n");
+	printf("-t\t\tbitmap height\n");
+	printf("-w\t\tbitmap width\n");
+}
+
+void bitmap_load(char *bitmap_filename)
+{
+	uint32_t size_read = 0;
+	FILE *fp = NULL;
+
+	fp = fopen(bitmap_filename, "rb");
+	if (!fp) {
+		printf("Cannot open bitmap file: %s\n", bitmap_filename);
+		return;
+	}
+
+	do {
+		size_read += fread(&(bitmap_buf[size_read]), sizeof(uint8_t), 1024, fp);
+		printf("%s %d\n", bitmap_filename, size_read);
+	} while(!feof(fp));
+
+	fclose(fp);
+
+	return;
 }
 
 int main(int argc, char **argv)
@@ -42,6 +57,7 @@ int main(int argc, char **argv)
 	uint8_t i2c_node_address = 0;
 	int x = -1;
 	int y = -1;
+	char bitmap_filename[256] = {0};
 	char line[25] = {0};
 	char msg[200] = {0};
 	char oled_type[10] = {0};
@@ -51,12 +67,14 @@ int main(int argc, char **argv)
 	int inverted = -1;
 	int display = -1;
 	int font = 0;
+	int bitmap_height = 0;
+	int bitmap_width = 0;
 
 	int cmd_opt = 0;
 
 	while(cmd_opt != -1) 
 	{
-		cmd_opt = getopt(argc, argv, "I:c::d:f:hi:l:m:n:r:x:y:");
+		cmd_opt = getopt(argc, argv, "I:c::d:f:hi:l:m:n:r:x:y:b:t:w:");
 
 		/* Lets parse */
 		switch (cmd_opt) {
@@ -107,6 +125,15 @@ int main(int argc, char **argv)
 				break;
 			case 'y':
 				y = atoi(optarg);
+				break;
+			case 'b':
+				strncpy(bitmap_filename, optarg, sizeof(bitmap_filename));
+				break;
+			case 't':
+				bitmap_height = atoi(optarg);
+				break;
+			case 'w':
+				bitmap_width = atoi(optarg);
 				break;
 			case -1:
 				// just ignore
@@ -221,9 +248,12 @@ int main(int argc, char **argv)
 
 	ssd1306_oled_display_buff_init();
 
-	// draw_bitmap
-	ssd1306_oled_draw_bitmap(mining_icon, 32, 32, 0, 0);
-
+	if ((bitmap_filename[0] != 0) && (bitmap_height != 0) && (bitmap_width != 0)) {
+		// load bitmap
+		bitmap_load(bitmap_filename);
+		// draw_bitmap
+		ssd1306_oled_draw_bitmap(bitmap_buf, bitmap_height, bitmap_width, 0, 0);
+	}
 	// print text
 	if (msg[0] != 0)
 	{

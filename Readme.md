@@ -29,15 +29,18 @@ Type "make clean" to clean the project.
 -I		init oled (128x32 or 128x64 or 64x48)
 -c		clear (line number or all)
 -d		0/display off 1/display on
--f      0/small font 5x7 1/normal font 8x8 (default small font)
+-f		0/small font 5x7 1/normal font 8x8 (default small font)
 -h		help message
 -i		0/normal oled 1/invert oled
 -l		put your line to display
 -m		put your strings to oled
--n      I2C device node address (0,1,2..., default 0)
+-n		I2C device node address (0,1,2..., default 0)
 -r		0/normal 180/rotate
 -x		x position
--y 		y position
+-y		y position
+-b		bitmap filename
+-t		bitmap height
+-w		bitmap width
 ```
 ## Example
 ### init the OLED once
@@ -116,3 +119,17 @@ $ ./ssd1306_bin -r 180
 ```sh
 $ ./ssd1306_bin -x 8 -y 1
 ```
+### show bitmap
+- set bitmap filename, height and width by '-b', '-t' and '-w'
+```sh
+$ ./ssd1306_bin -b "epd_bitmap_.bin" -t 32 -w 32
+```
+The bitmap is generated from website https://javl.github.io/image2cpp/.
+
+To show the bitmap in right way, please make sure the parameter you have set when generating bitmap as below:
+ - Canvas size(s), fit with your ssd1306 oled size, 
+ - Dithering, please choose "Binary"
+ - Scaling, stretch to fill canvas
+ - Code output format, Plain bytes
+ - Draw mode, Vertical - 1 bit per pixel
+Finally click the Download as binary file(.bin)
