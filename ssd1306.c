@@ -16,6 +16,8 @@
 const char init_oled_type_file[] = "/tmp/.ssd1306_oled_type";
 
 static uint8_t data_buf[1024];
+static uint8_t display_buf[SSD1306_DISP_BUFF_SIZE + 1];
+
 static uint8_t max_lines = 0;
 static uint8_t max_columns = 0;
 static uint8_t global_x = 0;
@@ -299,17 +301,17 @@ uint8_t ssd1306_oled_default_config(uint8_t oled_lines, uint8_t oled_columns)
 	data_buf[i++] = 0x7f;                       // default contract value
 	data_buf[i++] = SSD1306_COMM_PRECHARGE;     //SETPRECHARGE
 	data_buf[i++] = 0xf1;                       // default precharge value
-	data_buf[i++] = SSD1306_COMM_DESELECT_LV;   //SETVCOMDETECT                
+	data_buf[i++] = SSD1306_COMM_DESELECT_LV;   //SETVCOMDETECT
 	data_buf[i++] = 0x40;                       // default deselect value
 	data_buf[i++] = SSD1306_COMM_RESUME_RAM;    //DISPLAYALLON_RESUME
 	data_buf[i++] = SSD1306_COMM_DISP_NORM;     //NORMALDISPLAY
-	data_buf[i++] = SSD1306_COMM_DISPLAY_ON;    //DISPLAY ON             
+	data_buf[i++] = SSD1306_COMM_DISPLAY_ON;    //DISPLAY ON
 	data_buf[i++] = SSD1306_COMM_DISABLE_SCROLL;//Stop scroll
 
 	return _i2c_write(data_buf, i);
 }
 
-uint8_t ssd1306_oled_write_line(uint8_t size, char* ptr)
+uint8_t ssd1306_oled_write_line(uint8_t size, char* ptr, uint8_t x, uint8_t y)
 {
 	uint16_t i = 0;
 	uint16_t index = 0;
@@ -332,7 +334,7 @@ uint8_t ssd1306_oled_write_line(uint8_t size, char* ptr)
 	else
 		return 1;
 
-	data_buf[i++] = SSD1306_DATA_CONTROL_BYTE;
+	i = ((y / 8) * 128) + x;
 
 	// font table range in ascii table is from 0x20(space) to 0x7e(~)
 	while (ptr[index] != 0 && i <= 1024)
@@ -344,17 +346,17 @@ uint8_t ssd1306_oled_write_line(uint8_t size, char* ptr)
 		uint8_t j = 0;
 		for (j = 0; j < font_table_width; j++)
 		{
-			data_buf[i++] = font_ptr[j];
-			if (i > 1024)
+			display_buf[i++] = font_ptr[j];
+			if (i > max_columns)
 				return 1;
 		}
 		// insert 1 col space for small font size)
 		if (size == SSD1306_FONT_SMALL)
-			data_buf[i++] = 0x00;
+			display_buf[i++] = 0x00;
 		index++;
 	}
 
-	return _i2c_write(data_buf, i);
+	return 0;
 }
 
 uint8_t ssd1306_oled_write_string(uint8_t size, char* ptr)
@@ -383,7 +385,7 @@ uint8_t ssd1306_oled_write_string(uint8_t size, char* ptr)
 
 		// set cursor position
 		ssd1306_oled_set_XY(global_x, global_y);
-		rc += ssd1306_oled_write_line(size, buf);
+		rc += ssd1306_oled_write_line(size, buf, 0, 0);
 
 		if (cr != NULL)
 		{
@@ -461,6 +463,52 @@ uint8_t ssd1306_oled_load_resolution()
 	// file exists
 	fscanf(fp, "%hhux%hhu", &max_columns, &max_lines);
 	fclose(fp);
+
+	return 0;
+}
+
+
+uint8_t ssd1306_oled_display_buff_init()
+{
+	memset(display_buf, 0, SSD1306_DISP_BUFF_SIZE);
+
+	return 0;
+}
+
+uint8_t ssd1306_oled_draw_bitmap(const uint8_t *bitmap, uint8_t height, uint8_t width, uint8_t x, uint8_t y)
+{
+	int i, bitmap_i;
+	uint8_t height_i, width_i;
+
+	bitmap_i = 0;
+	for (height_i = 0 ; height_i < height ; height_i += 8) {
+		for (width_i = 0 ; width_i < width ; width_i++) {
+			i = ((y + height_i) / 8) * max_columns + (x + width_i);
+			display_buf[i] = bitmap[bitmap_i];
+			bitmap_i++;
+		}
+	}
+
+	return 0;
+}
+
+uint8_t ssd1306_oled_refresh()
+{
+	int i;
+	int height_i, width_i;
+
+	for (height_i = 0 ; height_i < max_lines; height_i += 8) {
+
+		i=0;
+		ssd1306_oled_set_XY(0, height_i / 8);
+
+		data_buf[i++] = SSD1306_DATA_CONTROL_BYTE;
+
+		for (width_i = 0 ; width_i < max_columns ; width_i++)
+			data_buf[i++] = display_buf[(height_i / 8 * max_columns) + width_i];
+
+		_i2c_write(data_buf, i);
+	}
 
 	return 0;
 }

@@ -53,6 +53,7 @@
 #define SSD1306_128_32_COLUMNS      128
 #define SSD1306_64_48_COLUMNS       64
 
+#define SSD1306_DISP_BUFF_SIZE    128*64/8
 
 uint8_t ssd1306_init(uint8_t i2c_dev);
 uint8_t ssd1306_end();
@@ -75,11 +76,14 @@ uint8_t ssd1306_oled_set_Y(uint8_t y);
 uint8_t ssd1306_oled_set_XY(uint8_t x, uint8_t y);
 uint8_t ssd1306_oled_set_rotate(uint8_t degree);
 uint8_t ssd1306_oled_default_config(uint8_t oled_lines, uint8_t oled_columns);
-uint8_t ssd1306_oled_write_line(uint8_t size, char* ptr);
+uint8_t ssd1306_oled_write_line(uint8_t size, char* ptr, uint8_t x, uint8_t y);
 uint8_t ssd1306_oled_write_string(uint8_t size, char* ptr);
 uint8_t ssd1306_oled_clear_line(uint8_t row);
 uint8_t ssd1306_oled_clear_screen();
 uint8_t ssd1306_oled_save_resolution(uint8_t column, uint8_t row);
 uint8_t ssd1306_oled_load_resolution();
+uint8_t ssd1306_oled_draw_bitmap(const uint8_t *bitmap, uint8_t height, uint8_t width, uint8_t x, uint8_t y);
+uint8_t ssd1306_oled_display_buff_init();
+uint8_t ssd1306_oled_refresh();
 
 #endif
